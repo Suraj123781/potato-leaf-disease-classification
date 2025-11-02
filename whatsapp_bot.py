@@ -27,6 +27,9 @@ SUGGESTIONS = {
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
+# Session memory
+user_sessions = {}
+
 def predict_image(image_bytes):
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -45,10 +48,12 @@ def predict_image(image_bytes):
 def whatsapp_bot():
     try:
         incoming_msg = request.values.get("Body", "").strip().lower()
+        from_number = request.values.get("From")
         num_media = int(request.values.get("NumMedia", 0))
         resp = MessagingResponse()
         msg = resp.message()
 
+        # Step 1: Handle image upload
         if num_media > 0:
             media_url = request.values.get("MediaUrl0")
             headers = {"User-Agent": "TwilioBot/1.0"}
@@ -57,14 +62,27 @@ def whatsapp_bot():
             if image_response.status_code == 200:
                 predicted_class, confidence = predict_image(image_response.content)
                 if predicted_class:
-                    recommendation = SUGGESTIONS[predicted_class]
-                    msg.body(f"✅ The leaf appears to be: *{predicted_class}* ({confidence:.2f}% confidence)\n\n{recommendation}")
+                    # Save session
+                    user_sessions[from_number] = predicted_class
+                    # Send image back + prediction
+                    msg.media(media_url)
+                    msg.body(f"✅ The leaf appears to be: *{predicted_class}* ({confidence:.2f}% confidence)\nWould you like prevention or treatment advice?")
                 else:
                     msg.body("⚠ Error: Could not process the image. Please try another one.")
             else:
                 msg.body("⚠ Error downloading image. Please resend.")
             return str(resp)
 
+        # Step 2: Handle user reply
+        if incoming_msg in ["yes", "treatment", "prevention"]:
+            disease = user_sessions.get(from_number)
+            if disease:
+                msg.body(SUGGESTIONS[disease])
+            else:
+                msg.body("⚠️ I couldn't find a recent image. Please send a potato leaf photo first.")
+            return str(resp)
+
+        # Default fallback
         if "hi" in incoming_msg or "hello" in incoming_msg:
             msg.body("👋 Hello! Send me a *potato leaf image*, and I'll tell you if it's *Early Blight*, *Late Blight*, or *Healthy*. 🌿")
         elif "predict" in incoming_msg:
