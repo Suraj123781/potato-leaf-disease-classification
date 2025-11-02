@@ -62,9 +62,7 @@ def whatsapp_bot():
             if image_response.status_code == 200:
                 predicted_class, confidence = predict_image(image_response.content)
                 if predicted_class:
-                    # Save session
-                    user_sessions[from_number] = predicted_class
-                    # Send image back + prediction
+                    user_sessions[from_number] = predicted_class  # Save session
                     msg.media(media_url)
                     msg.body(f"✅ The leaf appears to be: *{predicted_class}* ({confidence:.2f}% confidence)\nWould you like prevention or treatment advice?")
                 else:
