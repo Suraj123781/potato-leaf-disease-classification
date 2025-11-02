@@ -8,28 +8,38 @@ import numpy as np
 import tensorflow as tf
 from dotenv import load_dotenv
 
+# Disable GPU for Render
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 load_dotenv()
 app = Flask(__name__)
 
-model = tf.keras.models.load_model("potato_disease_model.h5")
+# Load model
+model = tf.keras.models.load_model("potato_disease_model.keras")
 CLASS_NAMES = ["Early Blight", "Late Blight", "Healthy"]
+SUGGESTIONS = {
+    "Early Blight": "🛡 Use fungicides like chlorothalonil or mancozeb. Remove infected leaves and rotate crops.",
+    "Late Blight": "🧪 Apply copper-based fungicides. Avoid overhead watering and improve air circulation.",
+    "Healthy": "✅ No action needed. Maintain regular monitoring and good soil health."
+}
 
+# Twilio credentials
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 
 def predict_image(image_bytes):
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        img = img.resize((128, 128))  # ✅ Match training size
+        img = img.resize((128, 128))
         img_array = np.array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
         predictions = model.predict(img_array)
         predicted_class = CLASS_NAMES[np.argmax(predictions[0])]
         confidence = float(np.max(predictions[0])) * 100
-        return f"{predicted_class} ({confidence:.2f}% confidence)"
+        return predicted_class, confidence
     except Exception as e:
         print("Error processing image:", e)
-        return None
+        return None, None
 
 @app.route("/whatsapp", methods=["POST"])
 def whatsapp_bot():
@@ -45,9 +55,10 @@ def whatsapp_bot():
             image_response = requests.get(media_url, auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN), headers=headers)
 
             if image_response.status_code == 200:
-                prediction = predict_image(image_response.content)
-                if prediction:
-                    msg.body(f"✅ The leaf appears to be: *{prediction}* 🍃")
+                predicted_class, confidence = predict_image(image_response.content)
+                if predicted_class:
+                    recommendation = SUGGESTIONS[predicted_class]
+                    msg.body(f"✅ The leaf appears to be: *{predicted_class}* ({confidence:.2f}% confidence)\n\n{recommendation}")
                 else:
                     msg.body("⚠ Error: Could not process the image. Please try another one.")
             else:
@@ -60,12 +71,15 @@ def whatsapp_bot():
             msg.body("📸 Please send a potato leaf image to predict its health.")
         else:
             msg.body("🤖 I didn't understand that. Send a leaf image or say 'hi'.")
-
         return str(resp)
 
     except Exception as e:
         print("WhatsApp bot error:", e)
         return "Error", 500
+
+@app.route("/health", methods=["GET"])
+def health():
+    return "OK", 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
