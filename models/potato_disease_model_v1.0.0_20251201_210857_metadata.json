@@ -1,0 +1,28 @@
+{
+  "model_name": "potato_disease_model_v1.0.0_20251201_210857",
+  "timestamp": "2025-12-01T21:11:27.923851",
+  "training_metrics": {
+    "final_accuracy": 0.960597038269043,
+    "final_val_accuracy": 0.5012722611427307,
+    "best_val_accuracy": 0.5012722611427307,
+    "final_loss": 0.018735436722636223,
+    "final_val_loss": 0.8624203205108643,
+    "epochs_trained": 7
+  },
+  "training_parameters": {
+    "batch_size": 32,
+    "epochs": 20,
+    "learning_rate": 0.001,
+    "l2_lambda": 0.0005,
+    "dropout_rate": 0.3,
+    "image_size": [
+      180,
+      180
+    ]
+  },
+  "class_weights": {
+    "0": 0.7149564050972501,
+    "1": 0.7200270178993583,
+    "2": 3.0
+  }
+}
