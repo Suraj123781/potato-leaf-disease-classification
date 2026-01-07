@@ -64,75 +64,24 @@ except Exception as e:
 
 CLASS_NAMES = ["Early Blight", "Late Blight", "Healthy"]
 
-DISEASE_INFO = {
-    "Early Blight": {
-        "name": "Early Blight",
-        "description": "Early blight is a common fungal disease that affects potato plants.",
-        "prevention": [
-            "Rotate crops regularly",
-            "Remove and destroy infected plants",
-            "Use disease-free seed potatoes",
-            "Apply fungicides preventatively"
-        ],
-        "products": [
-            "Copper-based fungicides",
-            "Chlorothalonil-based sprays",
-            "Mancozeb fungicides"
-        ],
-        "buy_links": [
-            " Copper Fungicide: https://amzn.in/d/8xWJ6X7",
-            " Chlorothalonil Spray: https://amzn.in/d/8xWJ6X7",
-            " Mancozeb Fungicide: https://amzn.in/d/8xWJ6X7"
-        ]
-    },
-    "Late Blight": {
-        "name": "Late Blight",
-        "description": "Late blight is a serious disease that can destroy entire potato crops.",
-        "prevention": [
-            "Plant resistant varieties",
-            "Ensure good air circulation",
-            "Avoid overhead watering",
-            "Apply fungicides before infection"
-        ],
-        "products": [
-            "Copper fungicides",
-            "Chlorothalonil",
-            "Metalaxyl-based fungicides"
-        ],
-        "buy_links": [
-            " Copper Fungicide: https://amzn.in/d/8xWJ6X7",
-            " Chlorothalonil Fungicide: https://amzn.in/d/8xWJ6X7",
-            " Metalaxyl Fungicide: https://amzn.in/d/8xWJ6X7"
-        ]
-    },
-    "Healthy": {
-        "name": "Healthy",
-        "description": "Your plant appears to be healthy! No signs of disease detected.",
-        "prevention": [
-            "Continue good gardening practices",
-            "Monitor plants regularly",
-            "Maintain proper spacing",
-            "Water at the base of plants"
-        ],
-        "products": [
-            "Balanced NPK fertilizer",
-            "Organic compost",
-            "General plant vitamins"
-        ],
-        "buy_links": [
-            " NPK 19:19:19 Fertilizer: https://amzn.in/d/8xWJ6X7",
-            " Organic Compost: https://amzn.in/d/8xWJ6X7",
-            " Seaweed Extract: https://amzn.in/d/8xWJ6X7"
-        ]
-    }
-}
-
-# Backward compatibility
 SUGGESTIONS = {
-    key: f"{value['description']}\n\n"
-         f"Prevention Tips:\n" + "\n".join(f"- {tip}" for tip in value['prevention']) + "\n\n"
-         f"Recommended Products:\n" + "\n".join(value['buy_links'])
-    for key, value in DISEASE_INFO.items()
+    "Early Blight": (
+        "🛡 Use fungicides like chlorothalonil or mancozeb. Remove infected leaves and rotate crops.\n\n"
+        "🛒 Buy online:\n"
+        "- AgriBegri: https://agribegri.com/products/shivalik-zee-l-fungicide.php\n"
+        "- BigHaat: https://www.bighaat.com/collections/management-of-early-blight-in-tomato-and-potato\n"
+        "- Amazon: https://www.amazon.in/Blitox-RALLIS-Copper-Oxychloride-Fungicide/dp/B0CKW9LGL1\n"
+        "- UPL Blitox via AgriBegri: https://agribegri.com/products/blitox-fungicide.php"
+    ),
+    "Late Blight": (
+        "🧪 Apply copper-based fungicides. Avoid overhead watering and improve air circulation.\n\n"
+        "🛒 Buy online:\n"
+        "- BharatAgri: https://krushidukan.bharatagri.com/en/collections/late-blight-disease-products-online\n"
+        "- BigHaat: https://www.bighaat.com/collections/late-blight-disease-management-in-tomato-and-potato-crops\n"
+        "- AgriBegri: https://agribegri.com/en/products/buy-sumitomo-kemoxyl-metalaxyl-8--mancozeb-64-wp-fungicide-online.php\n"
+        "- Amazon: https://www.amazon.in/Katyayani-Blight-Metalaxyl-M-Chlorothalonil-Fast-Acting/dp/B0FT3TQX58"
+    ),
+    "Healthy": "✅ No action needed. Maintain regular monitoring and good soil health."
 }
 
 # Store last prediction per user
@@ -255,10 +204,15 @@ def whatsapp_bot():
                     predicted_class, results = predict_image(image_response.content)
                     if predicted_class and results and not isinstance(results, dict) or 'Error' not in results:
                         # Format the response message for WhatsApp
-                        message = f"✅ The leaf appears to be: *{predicted_class}*\n\n"
-                        message += "👉 Would you like *prevention tips* or *confidence levels*? "
-                        message += "Reply with 'prevention' or 'confidence'."
-
+                        message = "*Prediction Result*\n\n"
+                        message += f"🌿 *Condition*: {predicted_class}\n\n"
+                        message += "*Confidence Levels*:\n"
+                        for disease, confidence in results.items():
+                            message += f"- {disease}: {confidence:.2f}%\n"
+                        message += "\n*What would you like to do next?*\n"
+                        message += "1. Type 'prevention' for prevention tips\n"
+                        message += "2. Send another image for analysis"
+                        
                         # Create a clean response
                         response = MessagingResponse()
                         response.message(message)
@@ -283,6 +237,7 @@ def whatsapp_bot():
                 print("❌ Exception while downloading:", e)
                 resp.message(f"⚠ Error downloading image: {e}")
                 return str(resp)
+
 
         # Step 2: User replies "prevention"
         if incoming_msg == "prevention" and sender in last_prediction:
@@ -313,28 +268,13 @@ def whatsapp_bot():
             print("🔧 TwiML response:", str(resp))
             return str(resp)
 
-        # Step 4: Greetings and help
-        if "hi" in incoming_msg or "hello" in incoming_msg or "help" in incoming_msg:
-            help_text = """👋 Welcome to Potato Disease Detector Bot! 🌱
-
-I can help you identify potato plant diseases and provide prevention tips.
-
-How to use:
-📸 Send a photo of a potato leaf for analysis
-💬 After getting results, you can ask for:
-  • 'prevention' - Get prevention tips
-  • 'confidence' - confidence score
-  • 'help' - Show this message
-
-Supported diseases:
-* Early Blight
-* Late Blight
-* Healthy plants
-
-🌿 Happy gardening!"""
+        # Step 4: Greetings and fallback
+        if "hi" in incoming_msg or "hello" in incoming_msg:
+            message = ("👋 *Hello!* Send me a clear photo of a potato leaf, and I'll tell you "
+                     "if it has *Early Blight*, *Late Blight*, or if it's *Healthy*. 🌿")
             response = MessagingResponse()
-            response.message(help_text)
-            print("📤 Sent help message")
+            response.message(message)
+            print("📤 Sent greeting message")
             return str(response)
 
         # Fallback for unknown messages
