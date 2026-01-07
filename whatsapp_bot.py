@@ -323,6 +323,7 @@ How to use:
 📸 Send a photo of a potato leaf for analysis
 💬 After getting results, you can ask for:
   • 'prevention' - Get prevention tips
+  • 'confidence' - confidence score
   • 'help' - Show this message
 
 Supported diseases:
